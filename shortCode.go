@@ -10,29 +10,11 @@ type shortCode struct {
 	o *Options
 }
 
-var _seeds = []string{
-	"hLGBDC3IXiT7Qpntu5r4kZRvzc9sFbVMASjdyql01fHNeKWUwx82gmEYP6aJ",
-	"3KYLSXtADP25ZaqVHNRkFg68x4jcfwB7zshn0UTIvWdmp1EQ9iGrMybeClJu",
-	"F4DMKB2S8g6ryCexpXtTwl73AYIZVcHh1vjiz0PsqUaGkbNRQnJ5W9uELmdf",
-	"QzuC6fhbeSlyRMA1LT9iUc4nBVGWYw2HkI8jsrJqtDN537PZKXmFgEdp0vxa",
-	"eQ4TJmchW1vC2XPdyFfqR0zYEtkx8KjDV6wnNgaBiuILb7Z3p9Us5lrGHMSA",
-	"rR8eCfVPZty3TFUWNczxGaqLMm1j6JshiDbgA5ndHv0XEp9uQk4lYBKI2w7S",
-	"cpxi12IayQ6rqWSn5hTGw84VCgMXPb7sDklYUz3AfBFvEjJ0tHNLZedmRu9K",
-	"U1Qkve80GClx3dbKzcfwEqInPuMiYaAmShr9pZVy5RTWJXB6N7H4L2FjsgtD",
-	"sXURIcVCg5ZTktxKEMFyBJn6Pp0lYr2f9diwAhGvSeW3b4jaD1zL7NmuQH8q",
-	"LlC0SkTrbJP7aI2mgM5j8ywzvW6sHfDRnGteXVU1QxB3EhKYpu4cZqA9NFid",
-}
-
-const (
-	_minNum = 777600000
-	_maxNum = 46656000000
-)
-
 func (s *shortCode) Encode(id int64) (string, error) {
-	if id < _minNum || id > _maxNum {
-		return "", errors.New("id not in range")
-	}
 
+	if err := s.checkId(id); err != nil {
+		return "", err
+	}
 	var (
 		seedNum int64
 		seed    string //种子
@@ -40,14 +22,14 @@ func (s *shortCode) Encode(id int64) (string, error) {
 	)
 
 	seedNum = id % 10
-	seed = _seeds[seedNum]
+	seed = s.o.Seeds[seedNum]
 	for id > 0 {
-		yu := id % 60
-		id = id / 60
+		yu := id % s.o.seedsLength
+		id = id / s.o.seedsLength
 		result = string(seed[yu]) + result
 	}
 
-	return result[:3] + strconv.FormatInt(seedNum, 10) + result[3:], nil
+	return result[:s.o.SeedsIndex] + strconv.FormatInt(seedNum, 10) + result[s.o.SeedsIndex:], nil
 }
 
 func (s *shortCode) Decode(code string) (int64, error) {
@@ -58,37 +40,76 @@ func (s *shortCode) Decode(code string) (int64, error) {
 		err     error
 	)
 
-	seedNum, err = getSeed(code)
+	if s.o.Len != int64(len(code)) {
+		return 0, errors.New("code length is error")
+	}
+
+	seedNum, err = s.getSeed(code)
 	if err != nil {
 		return 0, err
 	}
-	seed = _seeds[seedNum]
-	var i = 1 * 60 * 60 * 60 * 60 * 60
+	seed = s.o.Seeds[seedNum]
 
-	str := code[:3] + code[4:]
+	var i int64 = 1
+	for j := 0; j < int(s.o.Len)-2; j++ {
+		i = i * s.o.seedsLength
 
-	for _, ch := range str {
+	}
+	str := code[:s.o.SeedsIndex] + code[s.o.SeedsIndex:]
+	for codeIndex, ch := range str {
+		if int64(codeIndex) == s.o.SeedsIndex {
+			continue
+		}
 		index := strings.Index(seed, string(ch))
-		result = int64(index*i) + result
-		i = i / 60
+		result = (int64(index) * i) + result
+		i = i / s.o.seedsLength
 	}
 
 	return result, nil
 }
 
-func getSeed(code string) (int64, error) {
-	seedNum, err := strconv.ParseInt(string(code[3]), 10, 64)
+//获取种子
+func (s *shortCode) getSeed(code string) (int64, error) {
+	seedNum, err := strconv.ParseInt(string(code[s.o.SeedsIndex]), 10, 64)
 	if err != nil {
 		return 0, err
 	}
-
 	return seedNum, nil
 }
 
-func NewShortCode(opts ...Option) *shortCode {
+func (s *shortCode) checkId(id int64) error {
+	var i, min, max int64 = 1, 1, 1
+	for i = 0; i < s.o.Len-1; i++ {
+		max = s.o.seedsLength * max
+	}
+	min = max / s.o.seedsLength
+
+	if id < min || id > max {
+		return errors.New("id not in range")
+	}
+
+	return nil
+}
+
+func NewShortCode(opts ...Option) (*shortCode, error) {
 	o := newOptions(opts...)
+
+	if len(o.Seeds) != 10 {
+		return nil, errors.New("only support ten seeds")
+	}
+
+	for _, seed := range o.Seeds {
+		if o.seedsLength == 0 {
+			o.seedsLength = int64(len(seed))
+		}
+
+		if o.seedsLength != int64(len(seed)) {
+			return nil, errors.New("seeds must be same length")
+		}
+	}
+
 	return &shortCode{
 		o: o,
-	}
+	}, nil
 
 }

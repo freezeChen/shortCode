@@ -6,26 +6,33 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestShortCode(t *testing.T) {
-	shortCode := NewShortCode()
-	var id int64 = 1345678536
-	// fmt.
-	code, err := shortCode.Encode(id)
-	if err != nil {
-		t.Error(err)
-	}
-	sid, err := shortCode.Decode(code)
-	if err != nil {
-		t.Error(err)
+func TestDefaultShortCode(t *testing.T) {
+	shortCode, err := NewShortCode(CodeLength(6))
+	assert.NoError(t, err)
 
-	}
+	var id int64 = 593084745
+	code, err := shortCode.Encode(id)
+	assert.NoError(t, err)
+
+	sid, err := shortCode.Decode(code)
+	assert.NoError(t, err)
 
 	assert.Equal(t, id, sid)
 
 }
 
 func TestCustomShortCode(t *testing.T) {
-	// shortCode := NewShortCode(SeedsIndex(2), Length(6))
-	// var id
-	// shortCode.Encode()
+	shortCode, err := NewShortCode(SeedsIndex(2), CodeLength(6))
+	assert.NoError(t, err)
+
+	var code = "2p5ppp"
+
+	decode, err := shortCode.Decode(code)
+	assert.NoError(t, err)
+
+	encode, err := shortCode.Encode(decode)
+	assert.NoError(t, err)
+
+	assert.Equal(t, code, encode)
+
 }

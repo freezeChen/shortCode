@@ -13,23 +13,23 @@ var (
 		"sXURIcVCg5ZTktxKEMFyBJn6Pp0lYr2f9diwAhGvSeW3b4jaD1zL7NmuQH8q",
 		"LlC0SkTrbJP7aI2mgM5j8ywzvW6sHfDRnGteXVU1QxB3EhKYpu4cZqA9NFid",
 	}
-	defaultSeedsIndex = 3
-	defaultLength     = 7
+	defaultSeedsIndex int64 = 3
+	defaultLength     int64 = 7
 )
 
 type Options struct {
-	Seeds      []string
-	SeedsIndex int //种子所在下标
-	Len        int //字符串总长度
+	Seeds       []string
+	seedsLength int64 //种子长度 等同于多少进制
+	SeedsIndex  int64 //种子所在下标
+	Len         int64 //字符串总长度
 }
 
 type Option func(o *Options)
 
-func Length(len int) Option {
+func CodeLength(len int64) Option {
 	return func(o *Options) {
 		o.Len = len
 	}
-
 }
 
 func Seeds(seeds []string) Option {
@@ -38,7 +38,7 @@ func Seeds(seeds []string) Option {
 	}
 }
 
-func SeedsIndex(index int) Option {
+func SeedsIndex(index int64) Option {
 	return func(o *Options) {
 		o.SeedsIndex = index
 	}
