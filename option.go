@@ -26,18 +26,23 @@ type Options struct {
 
 type Option func(o *Options)
 
+//	generate code length
+//	default value is 7
 func CodeLength(len int64) Option {
 	return func(o *Options) {
 		o.Len = len
 	}
 }
 
+//	base seeds
+//	require: all strings must have same length and not repeated
 func Seeds(seeds []string) Option {
 	return func(o *Options) {
 		o.Seeds = seeds
 	}
 }
 
+//	seeds index
 func SeedsIndex(index int64) Option {
 	return func(o *Options) {
 		o.SeedsIndex = index
